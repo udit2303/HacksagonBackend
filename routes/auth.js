@@ -9,7 +9,7 @@ router.post('/login', (req, res) => {
     if(!username || !password || username === '' || password === ''){
         return res.sendStatus(400).json({message: 'Invalid username or password'});
     };
-    const user = User
+    User
         .findOne({username: username})
         .then(user => {
             if(!user){
