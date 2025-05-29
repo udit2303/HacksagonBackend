@@ -5,7 +5,7 @@ const User = require('../models/user');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const {authenticateToken} = require('../middleware/auth');
-
+const {creditCoin} = require('../core/creditCoin');
 // Initate authentication for the machine
 router.get('/initiate', async (req, res) => {
     const {id} = req.body;
@@ -61,7 +61,8 @@ router.post('/start', async (req, res) => {
                 try{
                     // Click picture from the webcam and send it to python backend
                     const processedData =  {'type': 'plastic', 'coins': 10}; // This is a placeholder, replace with actual logic to process waste
-                    req.user.coins += processedData.coins; // Add coins to the user
+                    await creditCoin(req.user, processedData.coins); // Credit coins to the user
+                    await req.user.updateStreak(); // Update user streak
                     await req.user.save(); // Save the user with updated coins
                     return res.status(200).json(processedData); // Machine will move waste according
                 } catch (error) {
