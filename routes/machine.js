@@ -8,7 +8,7 @@ const {authenticateToken} = require('../middleware/auth');
 const {creditCoin} = require('../core/creditCoin');
 // Initate authentication for the machine
 router.get('/initiate', async (req, res) => {
-    const {id} = req.body;
+    const {id} = req.query;
     const API_KEY = req.headers['x-api-key'];
     const machine = await Machine.findOne({id: id});
     if(!machine) {
@@ -29,8 +29,8 @@ router.get('/initiate', async (req, res) => {
     });
 });
 //User route, login the user to the machine
-router.post('/authenticate', authenticateToken, async (req, res) => {
-    const {id, sessionCode} = req.body;
+router.get('/authenticate', authenticateToken, async (req, res) => {
+    const {id, sessionCode} = req.query;
     const machine = await Machine.findOne({id, sessionCode});
     if (!machine) {
         return res.status(404).send("Machine not found or session expired");
