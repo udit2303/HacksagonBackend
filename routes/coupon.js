@@ -4,8 +4,50 @@ const storeCoupon = require('../models/storeCoupons');
 const userCoupon = require('../models/coupon');
 const User = require('../models/user');
 const router = express.Router();
-
-router.get('/:id', async(req, res) => {
+router.get('/:page', async(req, res) => {
+    const page = parseInt(req.params.page) || 1;
+    const limit = 10;
+    const skip = (page - 1) * limit;
+    const coupons = await storeCoupon.find()
+        .skip(skip)
+        .limit(limit)
+        .sort({createdAt: -1});
+    const totalCoupons = await storeCoupon.countDocuments();
+    const totalPages = Math.ceil(totalCoupons / limit);
+    res.json({
+        coupons,
+        pagination: {
+            currentPage: page,
+            totalPages,
+            totalCoupons
+        }
+    });
+});
+router.get('/coupons/:page', async(req, res) => {
+    const user = await User.findOne({email: req.user});
+    if(!user) {
+        return res.status(401).json({message: 'Unauthorized'});
+    }
+    const page = parseInt(req.params.page) || 1;
+    const limit = 10;
+    const skip = (page - 1) * limit;
+    const coupons = await userCoupon.find({user: user._id})
+        .skip(skip)
+        .limit(limit)
+        .sort({createdAt: -1})
+        .populate('coupon');
+    const totalCoupons = await userCoupon.countDocuments({user: user._id});
+    const totalPages = Math.ceil(totalCoupons / limit);
+    res.json({
+        coupons,
+        pagination: {
+            currentPage: page,
+            totalPages,
+            totalCoupons
+        }
+    });
+});
+router.post('/:id', async(req, res) => {
     if(!req.params.id){
         return res.status(400).json({message: 'Bad Request'});
     }

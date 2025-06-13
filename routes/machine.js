@@ -4,8 +4,13 @@ const Machine = require('../models/machine');
 const User = require('../models/user');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
+const FormData = require('form-data');
+const fetch = require('node-fetch');
 const {authenticateToken} = require('../middleware/auth');
 const {creditCoin} = require('../core/creditCoin');
+const captureImage = require('../core/captureImage');
+require('dotenv').config();
+
 // Initate authentication for the machine
 router.get('/initiate', async (req, res) => {
     const {id} = req.query;
@@ -59,7 +64,22 @@ router.post('/start', async (req, res) => {
         if (result) {
             if(machine.user) {
                 try{
-                    // Click picture from the webcam and send it to python backend
+                    // Capture image from the webcam
+                    const imageBuffer = await captureImage(); 
+                    const formData = new FormData();
+                    formData.append('image', imageBuffer, {
+                        filename: `waste_image.jpg`,
+                        contentType: 'image/jpeg'
+                    });
+                    const response = await fetch(process.env.WASTE_PROCESSING_API_URL, {
+                        method: 'POST',
+                        body: formData,
+                    });
+                    if (!response.ok) {
+                        console.error("Error processing waste:", response.statusText);
+                        return res.status(500).send("Error processing waste");
+                    }
+                    
                     const processedData =  {'type': 'plastic', 'coins': 10}; // This is a placeholder, replace with actual logic to process waste
                     await creditCoin(req.user, processedData.coins); // Credit coins to the user
                     await req.user.updateStreak(); // Update user streak

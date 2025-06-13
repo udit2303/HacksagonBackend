@@ -22,5 +22,9 @@ const Coupon = db.model('userCoupon', new db.Schema({
         type: String,
         required: true
     },
+    brand:{
+        type: String,
+        required: true
+    }
 }));
 module.exports = Coupon;
