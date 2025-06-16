@@ -3,7 +3,21 @@ const crypt = require('crypto');
 const storeCoupon = require('../models/storeCoupons');
 const userCoupon = require('../models/coupon');
 const User = require('../models/user');
+const transaction = require('../models/transaction');
+const { saveCoupon } = require('../core/redis');
 const router = express.Router();
+
+async function createTransaction(user, amount, description) {
+    const newTransaction = new transaction({
+        user: user._id,
+        type: 'debit',
+        amount: amount,
+        description: description
+    });
+    await newTransaction.save();
+}
+
+
 router.get('/:page', async(req, res) => {
     const page = parseInt(req.params.page) || 1;
     const limit = 10;
@@ -13,30 +27,6 @@ router.get('/:page', async(req, res) => {
         .limit(limit)
         .sort({createdAt: -1});
     const totalCoupons = await storeCoupon.countDocuments();
-    const totalPages = Math.ceil(totalCoupons / limit);
-    res.json({
-        coupons,
-        pagination: {
-            currentPage: page,
-            totalPages,
-            totalCoupons
-        }
-    });
-});
-router.get('/coupons/:page', async(req, res) => {
-    const user = await User.findOne({email: req.user});
-    if(!user) {
-        return res.status(401).json({message: 'Unauthorized'});
-    }
-    const page = parseInt(req.params.page) || 1;
-    const limit = 10;
-    const skip = (page - 1) * limit;
-    const coupons = await userCoupon.find({user: user._id})
-        .skip(skip)
-        .limit(limit)
-        .sort({createdAt: -1})
-        .populate('coupon');
-    const totalCoupons = await userCoupon.countDocuments({user: user._id});
     const totalPages = Math.ceil(totalCoupons / limit);
     res.json({
         coupons,
@@ -62,11 +52,11 @@ router.post('/:id', async(req, res) => {
     if(user.coins < coupon.coins){
         return res.status(403).json({message: 'Forbidden'});
     }
-    user.coins -= coupon.coins;
-    const couponCode = crypt.randomBytes(8).toString('hex');
-    await userCoupon.create({userId: user.id, code: couponCode, coupon});
+    userData.coins -= couponData.coins;
     await user.save();
-    await userCoupon.save();
+    const couponCode = crypt.randomBytes(8).toString('hex');
+    coupon.code = couponCode;
+    await saveCoupon(user._id, coupon);
     res.json({couponCode});
 });
 

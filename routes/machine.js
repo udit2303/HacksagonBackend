@@ -64,6 +64,10 @@ router.post('/start', async (req, res) => {
         if (result) {
             if(machine.user) {
                 try{
+                    const user = await User.findById(machine.user);
+                if (!user) {
+                    return res.status(404).send("User not found");
+                }
                     // Capture image from the webcam
                     const imageBuffer = await captureImage(); 
                     const formData = new FormData();
@@ -81,9 +85,9 @@ router.post('/start', async (req, res) => {
                     }
                     
                     const processedData =  {'type': 'plastic', 'coins': 10}; // This is a placeholder, replace with actual logic to process waste
-                    await creditCoin(req.user, processedData.coins); // Credit coins to the user
-                    await req.user.updateStreak(); // Update user streak
-                    await req.user.save(); // Save the user with updated coins
+                    await creditCoin(user, processedData.coins, processedData.type); // Credit coins to the user
+                    await user.updateStreak(); // Update user streak
+                    await user.save(); // Save the user with updated coins
                     return res.status(200).json(processedData); // Machine will move waste according
                 } catch (error) {
                     console.error("Error processing waste:", error);
