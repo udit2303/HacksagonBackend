@@ -3,19 +3,9 @@ const crypt = require('crypto');
 const storeCoupon = require('../models/storeCoupons');
 const userCoupon = require('../models/coupon');
 const User = require('../models/user');
-const transaction = require('../models/transaction');
 const { saveCoupon } = require('../core/redis');
 const router = express.Router();
 
-async function createTransaction(user, amount, description) {
-    const newTransaction = new transaction({
-        user: user._id,
-        type: 'debit',
-        amount: amount,
-        description: description
-    });
-    await newTransaction.save();
-}
 
 
 router.get('/:page', async(req, res) => {

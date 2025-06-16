@@ -21,19 +21,16 @@ async function setCache(key, value) {
     });
     
 }
-async function saveTransaction(userId, type, amount, description) {
+async function saveTransaction(user, type, amount, description) {
     const newTransaction = new transaction({
-        user: userId,
+        user: user._id,
         type: type,
         amount: amount,
         description: description,
     });
     await newTransaction.save();
-    const userData = await user.findById(userId);
-    if (!userData) {
-        throw new Error('User not found');
-    }
-    const data = client.get(userData.email);
+    await user.save();
+    const data = await client.get(user.email);
     if (data) {
         const cachedData = JSON.parse(data);
         cachedData.transactions.unshift({
@@ -49,9 +46,9 @@ async function saveTransaction(userId, type, amount, description) {
         await setCache(userData.email, JSON.stringify(cachedData));
     }
 }
-async function saveCoupon(userId, couponData) {
+async function saveCoupon(user, couponData) {
     const newCoupon = new userCoupon({
-        userId: userId,
+        userId: user._id,
         code: couponData.code,
         brand: couponData.brand,
         image: couponData.image,
@@ -59,12 +56,8 @@ async function saveCoupon(userId, couponData) {
         category: couponData.category,
     });
     await newCoupon.save();
-    const userData = await user.findById(userId);
-    if (!userData) {
-        throw new Error('User not found');
-    }
-    await saveTransaction(userId, 'debit', couponData.coins , `Redeemed coupon from ${couponData.brand}`);
-    const data = client.get(userData.email);
+    await saveTransaction(user, 'debit', couponData.coins , `Redeemed coupon from ${couponData.brand}`);
+    const data = await client.get(userData.email);
     if (data) {
         const cachedData = JSON.parse(data);
         cachedData.coupons.push({

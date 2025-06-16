@@ -17,7 +17,9 @@ const Machine = db.model("Machine", new db.Schema({
     //Status can have the following values: "active", "inactive"
     status: {
         type: String,
-        required: true
+        required: true,
+        enum: ["active", "inactive"],
+        default: "inactive"
     },
     apiKey:{
         type: String,
@@ -32,7 +34,10 @@ const Machine = db.model("Machine", new db.Schema({
         required: false
     },
     user: {
-        type: db.Schema.Types.ObjectId,
-        ref: "User"
+        type: String,
+        required: false,
+        default: null
     }
 }));
+
+module.exports = Machine;

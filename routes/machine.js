@@ -19,7 +19,7 @@ router.get('/initiate', async (req, res) => {
     if(!machine) {
         return res.status(404).send("Machine not found");
     }
-    bcrypt.compare(API_KEY, machine.apiKey, (err, result) => {
+    bcrypt.compare(API_KEY, machine.apiKey, async (err, result) => {
         if (err) {
             return res.status(500).send("Internal Server Error");
         }
@@ -28,6 +28,8 @@ router.get('/initiate', async (req, res) => {
             machine.sessionCode = code;
             // Expires after 5 min
             machine.expiresAt = new Date(Date.now() + 5*60*1000);
+            machine.user = null; // Clear any previous user session
+            await machine.save();
             return res.status(200).json({sessionCode: code});
         }
         return res.status(401).send("Unauthorized");
@@ -40,7 +42,7 @@ router.get('/authenticate', authenticateToken, async (req, res) => {
     if (!machine) {
         return res.status(404).send("Machine not found or session expired");
     }
-    Machine.user = req.user._id;
+    machine.user = req.user;
     machine.expiresAt = new Date(Date.now() + 5*60*1000); // Extend session for 5 minutes
     await machine.save();
     res.status(200).send("Machine authenticated successfully");
@@ -64,15 +66,16 @@ router.post('/start', async (req, res) => {
         if (result) {
             if(machine.user) {
                 try{
-                    const user = await User.findById(machine.user);
+                    const user = await User.findOne({email:machine.user});
                 if (!user) {
                     return res.status(404).send("User not found");
                 }
                     // Capture image from the webcam
-                    const imageBuffer = await captureImage(); 
+                    const imageBuffer = await captureImage();
+                    // Read the image, capture.jpg is the image captured from the webcam
                     const formData = new FormData();
-                    formData.append('image', imageBuffer, {
-                        filename: `waste_image.jpg`,
+                    formData.append('file', imageBuffer,{
+                        filename: 'capture.jpg',
                         contentType: 'image/jpeg'
                     });
                     const response = await fetch(process.env.WASTE_PROCESSING_API_URL, {
@@ -83,11 +86,17 @@ router.post('/start', async (req, res) => {
                         console.error("Error processing waste:", response.statusText);
                         return res.status(500).send("Error processing waste");
                     }
-                    
-                    const processedData =  {'type': 'plastic', 'coins': 10}; // This is a placeholder, replace with actual logic to process waste
+                    const responseData = await response.json();
+                    console.log("Waste processed successfully:", responseData);
+                    const processedData = {type: responseData.predicted_class};
+                    if (responseData.predicted_class === 'plastic') {
+                        processedData.coins = 10; 
+                    } else if (responseData.predicted_class === 'paper') {
+                        processedData.coins = 5; 
+                    } else if (responseData.predicted_class === 'metal') {
+                        processedData.coins = 15;
+                    }
                     await creditCoin(user, processedData.coins, processedData.type); // Credit coins to the user
-                    await user.updateStreak(); // Update user streak
-                    await user.save(); // Save the user with updated coins
                     return res.status(200).json(processedData); // Machine will move waste according
                 } catch (error) {
                     console.error("Error processing waste:", error);
@@ -157,3 +166,5 @@ router.post('/terminate', async (req, res) => {
         return res.status(401).send("Unauthorized");
     });
 });
+
+module.exports = router;
