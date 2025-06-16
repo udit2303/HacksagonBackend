@@ -5,10 +5,10 @@ const User = require('../models/user');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const FormData = require('form-data');
-const fetch = require('node-fetch');
 const {authenticateToken} = require('../middleware/auth');
 const {creditCoin} = require('../core/creditCoin');
 const captureImage = require('../core/captureImage');
+const axios = require('axios');
 require('dotenv').config();
 
 // Initate authentication for the machine
@@ -78,15 +78,15 @@ router.post('/start', async (req, res) => {
                         filename: 'capture.jpg',
                         contentType: 'image/jpeg'
                     });
-                    const response = await fetch(process.env.WASTE_PROCESSING_API_URL, {
-                        method: 'POST',
-                        body: formData,
+                    const response = await axios.post(process.env.WASTE_PROCESSING_API_URL, formData, {
+                        headers: formData.getHeaders(),
                     });
-                    if (!response.ok) {
+                    if (response.status !== 200) {
                         console.error("Error processing waste:", response.statusText);
                         return res.status(500).send("Error processing waste");
                     }
-                    const responseData = await response.json();
+
+                    const responseData = response.data;
                     console.log("Waste processed successfully:", responseData);
                     const processedData = {type: responseData.predicted_class};
                     if (responseData.predicted_class === 'plastic') {
