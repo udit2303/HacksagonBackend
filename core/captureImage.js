@@ -1,29 +1,21 @@
-const NodeWebcam = require('node-webcam');
-
+require('dotenv').config();
+const axios = require('axios');
+const fs = require('fs');
 const captureImage = (outputPath = 'capture.jpg', options = {}) => {
-    return new Promise((resolve, reject) => {
-        const webcam = NodeWebcam.create({
-            width: 1280,
-            height: 720,
-            quality: 100,
-            output: "jpeg",
-            device: 0,
-            callbackReturn: "location",
-            verbose: false,
-            ...options
-        });
+    return new Promise(async (resolve, reject) => {
+        const ipCamUrl = process.env.IP_CAM_URL || 'http://192.168.29.176:8080/shot.jpg'; // Default URL if not set
+        try {
+            // Fetch the image as a buffer
+            const response = await axios.get(ipCamUrl, { responseType: 'arraybuffer' });
 
-        webcam.capture(outputPath, function(err, data) {
-            if (err) return reject(err);
-            // Resolve the imageBuffer
-            const fs = require('fs');
-            fs.readFile(data, (err, imageBuffer) => {
-                if (err) return reject(err);
-                // Resolve the image buffer in the image/ jpeg format
-                
-                resolve(imageBuffer);
-            });
-        });
+            // The image buffer is ready to use
+            const imageBuffer = Buffer.from(response.data, 'binary');
+            fs.writeFileSync(outputPath, imageBuffer); // Save the image to the specified path
+            resolve(imageBuffer);
+
+        } catch (error) {
+            reject(error);
+        }
     });
 };
 

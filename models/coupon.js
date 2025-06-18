@@ -1,6 +1,6 @@
 const db = require('../core/db');
 const Coupon = db.model('userCoupon', new db.Schema({
-    user: {
+    userId: {
         type: db.Schema.Types.ObjectId,
         ref: 'User',
         required: true

@@ -4,12 +4,13 @@ dotenv.config();
 const transaction = require('../models/transactions');
 const user = require('../models/user');
 const userCoupon = require('../models/coupon');
-const client = redis.createClient();
-
+const client = redis.createClient({
+    url:process.env.REDIS_URL,
+});
 client.on('error', (err) => {
     console.error('Redis Client Error', err);
 });
-client.connect(process.env.REDIS_URL || 'redis://localhost:6379')
+client.connect(process.env.REDIS_URL)
     .then(() => console.log('Redis client connected'))
     .catch(err => console.error('Redis connection error', err));
 
@@ -38,12 +39,12 @@ async function saveTransaction(user, type, amount, description) {
             type: newTransaction.type,
             amount: newTransaction.amount,
             description: newTransaction.description,
-            date: newTransaction.createdAt.toISOString(),
+            date: newTransaction.date.toISOString(),
         });
         cachedData.transactions = cachedData.transactions.slice(0, 10);
-        cachedData.coins = userData.coins;
-        cachedData.streak = userData.streak;
-        await setCache(userData.email, JSON.stringify(cachedData));
+        cachedData.coins = user.coins;
+        cachedData.streak = user.streak;
+        await setCache(user.email, cachedData);
     }
 }
 async function saveCoupon(user, couponData) {
@@ -57,7 +58,7 @@ async function saveCoupon(user, couponData) {
     });
     await newCoupon.save();
     await saveTransaction(user, 'debit', couponData.coins , `Redeemed coupon from ${couponData.brand}`);
-    const data = await client.get(userData.email);
+    const data = await client.get(user.email);
     if (data) {
         const cachedData = JSON.parse(data);
         cachedData.coupons.push({
@@ -67,7 +68,7 @@ async function saveCoupon(user, couponData) {
             link: newCoupon.link,
             category: newCoupon.category,
         });
-        await setCache(userData.email, JSON.stringify(cachedData));
+        await setCache(user.email, cachedData);
     }
 }
 async function getCache(key) {
@@ -85,7 +86,7 @@ async function getCache(key) {
             link: coupon.link,
             category: coupon.category,
         }));
-        const transactionData = await transaction.find({ user: userData._id }).sort({ createdAt: -1 }).limit(10);
+        const transactionData = await transaction.find({ user: userData._id }).sort({ date: -1 }).limit(10);
         userData.transactions = transactionData.map(tx => ({
             _id: tx._id,
             type: tx.type,
@@ -103,10 +104,11 @@ async function getCache(key) {
             transactions: userData.transactions,
             coupons: userData.coupons,
         };
-        await setCache(key, JSON.stringify(dataToCache));
+        await setCache(key,dataToCache);
         return dataToCache;     
     }
-    return JSON.parse(data);
+    const cachedData = JSON.parse(data);
+    return cachedData;
 }
 
 module.exports = {

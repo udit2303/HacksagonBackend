@@ -42,11 +42,10 @@ router.post('/:id', async(req, res) => {
     if(user.coins < coupon.coins){
         return res.status(403).json({message: 'Forbidden'});
     }
-    userData.coins -= couponData.coins;
-    await user.save();
+    user.coins -= coupon.coins;
     const couponCode = crypt.randomBytes(8).toString('hex');
     coupon.code = couponCode;
-    await saveCoupon(user._id, coupon);
+    await saveCoupon(user, coupon);
     res.json({couponCode});
 });
 
@@ -59,7 +58,8 @@ router.post('/', async(req, res) => {
     if(!coins || !category || !image || !link || !brand || category === '' || image === '' || link === '' || brand === ''){
         return res.status(400).json({message: 'Bad Request'});
     }
-    const created = await storeCoupon.create({coins, category, image, link, brand});
+    const id = await storeCoupon.countDocuments() + 1;
+    const created = await storeCoupon.create({coins, category, image, link, brand, id});
     res.status(201).json({message: 'Created', id: created.id});
 });
 

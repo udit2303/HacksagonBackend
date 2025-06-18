@@ -4,7 +4,6 @@ const Coupon = db.model('StoreCoupon', new db.Schema({
         type: Number,
         autoIncrement: true,
         unique: true,
-        required: true
     },
     image:{
         type: String,

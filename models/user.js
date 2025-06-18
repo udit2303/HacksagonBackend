@@ -46,7 +46,7 @@ userSchema.methods.updateStreak = function(currentDate = new Date()) {
     }
     // If diffDays === 0, do not update streak
     this.lastDeposit = currentDate;
-    return this.save();
+    return true;
 };
 
 const User = db.model('User', userSchema);
