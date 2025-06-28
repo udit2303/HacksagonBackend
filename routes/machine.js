@@ -13,6 +13,7 @@ require('dotenv').config();
 
 // Initate authentication for the machine
 router.get('/initiate', async (req, res) => {
+    console.log("start");
     const {id} = req.query;
     const API_KEY = req.headers['x-api-key'];
     const machine = await Machine.findOne({id: id});
@@ -24,7 +25,7 @@ router.get('/initiate', async (req, res) => {
             return res.status(500).send("Internal Server Error");
         }
         if (result) {
-            const code = crypto.randomBytes(10).toString('hex');
+            const code = crypto.randomBytes(6).toString('hex');
             machine.sessionCode = code;
             // Expires after 5 min
             machine.expiresAt = new Date(Date.now() + 5*60*1000);
@@ -32,22 +33,32 @@ router.get('/initiate', async (req, res) => {
             await machine.save();
             return res.status(200).json({sessionCode: code});
         }
-        return res.status(401).send("Unauthorized");
+        return res.status(401).send({error:"Unauthorized"});
     });
 });
 //User route, login the user to the machine
 router.get('/authenticate', authenticateToken, async (req, res) => {
-    const {id, sessionCode} = req.query;
-    const machine = await Machine.findOne({id, sessionCode});
+    console.log("User authenticated:", req.user);
+    const {sessionCode} = req.query;
+    const machine = await Machine.findOne({sessionCode});
     if (!machine) {
-        return res.status(404).send("Machine not found or session expired");
+        return res.status(404).json({error:"Machine not found or session expired"});
     }
     machine.user = req.user;
     machine.expiresAt = new Date(Date.now() + 5*60*1000); // Extend session for 5 minutes
     await machine.save();
     res.status(200).send("Machine authenticated successfully");
 });
-
+router.get("/check", async (req, res) => {
+    const {id} = req.query;
+    const machine = await Machine.findOne({id: id});
+    if (!machine) {
+        return res.status(404).send("Machine not found");
+    }
+    return res.status(200).json({
+        loggedIn: machine.user ? true : false
+    });
+});
 //Start processing the waste in the machine
 router.post('/start', async (req, res) => {
     const {id, sessionCode} = req.body;
@@ -94,6 +105,9 @@ router.post('/start', async (req, res) => {
                     } else if (responseData.predicted_class === 'paper') {
                         processedData.coins = 5; 
                     } else if (responseData.predicted_class === 'metal') {
+                        processedData.coins = 15;
+                    }
+                    else if(responseData.predicted_class === 'glass'){
                         processedData.coins = 15;
                     }
                     await creditCoin(user, processedData.coins, processedData.type); // Credit coins to the user

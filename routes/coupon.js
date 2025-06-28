@@ -8,23 +8,11 @@ const router = express.Router();
 
 
 
-router.get('/:page', async(req, res) => {
-    const page = parseInt(req.params.page) || 1;
-    const limit = 10;
-    const skip = (page - 1) * limit;
+router.get('/', async(req, res) => {
     const coupons = await storeCoupon.find()
-        .skip(skip)
-        .limit(limit)
         .sort({createdAt: -1});
-    const totalCoupons = await storeCoupon.countDocuments();
-    const totalPages = Math.ceil(totalCoupons / limit);
     res.json({
-        coupons,
-        pagination: {
-            currentPage: page,
-            totalPages,
-            totalCoupons
-        }
+        coupons
     });
 });
 router.post('/:id', async(req, res) => {
@@ -54,12 +42,12 @@ router.post('/', async(req, res) => {
     if(!user || user.role !== 'admin'){
         return res.status(401).json({message: 'Unauthorized'});
     };
-    const {coins, category, image, link, brand} = req.body;
+    const {coins, category, image, link, brand, title} = req.body;
     if(!coins || !category || !image || !link || !brand || category === '' || image === '' || link === '' || brand === ''){
         return res.status(400).json({message: 'Bad Request'});
     }
     const id = await storeCoupon.countDocuments() + 1;
-    const created = await storeCoupon.create({coins, category, image, link, brand, id});
+    const created = await storeCoupon.create({coins, category, image, link, brand, id, title});
     res.status(201).json({message: 'Created', id: created.id});
 });
 

@@ -25,6 +25,14 @@ const userSchema = new db.Schema({
         type: Date,
         default: Date.now
     },
+    itemCount:{
+        type: Number,
+        default: 0
+    },
+    createdOn:{
+        type: Date,
+        default: Date.now
+    },
     role:{
         type: String,
         default: 'user'

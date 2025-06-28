@@ -13,7 +13,10 @@ const userRoutes = require("./routes/user");
 const couponRoutes = require("./routes/coupon");
 app.use(express.json());
 app.use(cookieParser());
-app.use(cors());
+app.use(cors({
+    origin: true,
+    credentials: true
+}));
 app.on("error", (err) => {
     console.error(err);
 });

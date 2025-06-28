@@ -4,6 +4,7 @@ const creditCoin = async (user, amount, type) => {
     const streak = user.streak || 0;
     const reward = Math.min(maxReward, Math.floor(streak * streak / 4));
     user.coins += amount + reward;
+    user.itemCount += 1;
     user.updateStreak();
     await saveTransaction(user, 'credit', amount + reward, `Recycled ${type}`);
 }

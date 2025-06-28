@@ -23,6 +23,7 @@ async function setCache(key, value) {
     
 }
 async function saveTransaction(user, type, amount, description) {
+    if (typeof(amount) !== 'number' || amount <= 0) { amount = 0};
     const newTransaction = new transaction({
         user: user._id,
         type: type,
@@ -96,13 +97,14 @@ async function getCache(key) {
         }));
         const dataToCache = {
             _id: userData._id,
-            email: userData.email,
-            username: userData.username,
-            coins: userData.coins,
-            streak: userData.streak,
-            lastDeposit: userData.lastDeposit,
-            transactions: userData.transactions,
-            coupons: userData.coupons,
+                email: userData.email,
+                username: userData.username,
+                createdOn: userData.createdOn.toISOString(),
+                coins: userData.coins,
+                streak: userData.streak,
+                lastDeposit: userData.lastDeposit,
+                transactions: userData.transactions,
+                coupons: userData.coupons,
         };
         await setCache(key,dataToCache);
         return dataToCache;     

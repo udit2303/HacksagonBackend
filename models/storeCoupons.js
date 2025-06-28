@@ -13,6 +13,9 @@ const Coupon = db.model('StoreCoupon', new db.Schema({
         type: String,
         required: true
     },
+    title:{
+        type: String
+    },
     category:{
         type: String,
         required: true

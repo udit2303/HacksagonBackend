@@ -21,13 +21,7 @@ router.post('/login', (req, res) => {
                 }
                 if(result){
                     const accessToken = jwt.sign(user.email, process.env.ACCESS_TOKEN_SECRET);
-                    res.cookie('accessToken', accessToken, {
-                        httpOnly: true,    // Prevents JS access
-                        secure: true,      // Only send over HTTPS
-                        sameSite: 'Strict', // Protects against CSRF
-                        maxAge: 24 * 60 * 60 * 1000 // 1 day
-                    });
-                    return res.status(200).json({message: 'Login successful'});
+                    return res.status(200).json({message: 'Login successful', accessToken});
                 }
                 return res.status(400).json({message: 'Invalid username or password'});
             });
@@ -54,7 +48,8 @@ router.post('/register', (req, res) => {
         });
         user.save()
             .then(() => {
-                return res.sendStatus(201);
+                const accessToken = jwt.sign(user.email, process.env.ACCESS_TOKEN_SECRET);
+                return res.json({accessToken});
             })
             .catch(err => {
                 console.error(err);
